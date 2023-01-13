@@ -1,5 +1,11 @@
-controllers:
+central:
     resource:
-        path: ../src/Controller/
-        namespace: App\Controller
+        path: ../src/Central/Controller/
+        namespace: App\Central\Controller
+    type: attribute
+
+tenant:
+    resource:
+        path: ../src/Tenant/Controller/
+        namespace: App\Tenant\Controller
     type: attribute

@@ -4,6 +4,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    tenant_migrations_path: '%kernel.project_dir%/migrations/Tenant'
+    hostname: 'tenancy.test'
 
 services:
     # default configuration for services in *this* file
@@ -19,6 +21,15 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
-
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Central\EventListener\TenantListener :
+        arguments:
+            $container: '@service_container'
+            $entityManager: '@doctrine.orm.entity_manager'
+
+    App\Central\Command\TenantMigrationCommand:
+        arguments:
+            $container: '@service_container'
+            $entityManager: '@doctrine.orm.entity_manager'
