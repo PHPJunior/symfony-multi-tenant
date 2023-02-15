@@ -3,6 +3,8 @@
 namespace App\Central\Command;
 
 use App\Central\Repository\TenantRepository;
+use App\Central\Services\TenantService;
+use Doctrine\DBAL\Exception;
 use Doctrine\Migrations\Configuration\Configuration;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
 use Doctrine\Migrations\Configuration\Migration\ExistingConfiguration;
@@ -12,6 +14,7 @@ use Doctrine\Migrations\Tools\Console\Command\MigrateCommand;
 use Doctrine\ORM\EntityManager;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\ExceptionInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -21,19 +24,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 #[AsCommand(
     name: 'app:tenant-migrate',
-    description: 'Run migration for tenant',
+    description: 'Run migration for Tenant',
+    aliases: ['tenant:migrate'],
     hidden: false
 )]
 class TenantMigrationCommand extends Command
 {
     /**
      * @param ContainerInterface $container
-     * @param EntityManager $entityManager
+     * @param TenantService $tenantService
      * @param TenantRepository $tenantRepository
      */
     public function __construct(
         private readonly ContainerInterface $container,
-        private readonly EntityManager $entityManager,
+        private readonly TenantService $tenantService,
         private readonly TenantRepository $tenantRepository
     )
     {
@@ -45,13 +49,17 @@ class TenantMigrationCommand extends Command
      */
     protected function configure(): void
     {
-        $this->addArgument('tenantId')
+        $this->addArgument('tenantId', InputArgument::REQUIRED, 'Tenant ID')
             ->addArgument('version', InputArgument::OPTIONAL, 'The version number (YYYYMMDDHHMMSS) or alias (first, prev, next, latest) to migrate to.', 'latest')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Execute the migration as a dry run.')
             ->addOption('query-time', null, InputOption::VALUE_NONE, 'Time all the queries individually.')
             ->addOption('allow-no-migration', null, InputOption::VALUE_NONE, 'Do not throw an exception when no changes are detected.');
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $tenantId = $input->getArgument('tenantId');
@@ -62,10 +70,10 @@ class TenantMigrationCommand extends Command
             return Command::FAILURE;
         }
 
-        $connection = $this->entityManager->getConnection();
-        $connection->changeDatabase($tenant->getDbname());
+        $connection = $this->tenantService->getConnection();
+        $this->tenantService->switchTenant($tenant);
 
-        $configuration = new Configuration($connection);
+        $configuration = new Configuration();
         $configuration->addMigrationsDirectory('Tenant\Migrations', $this->container->getParameter('tenant_migrations_path'));
         $configuration->setAllOrNothing(true);
         $configuration->setCheckDatabasePlatform(false);
