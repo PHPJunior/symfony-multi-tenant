@@ -2,57 +2,62 @@
 
 namespace App\Central\Services;
 
+use App\Central\Doctrine\DBAL\TenantConnection;
 use App\Central\Entity\Tenant;
-use Doctrine\DBAL\DriverManager;
+use App\Tenant\Entity\User;
+use App\Tenant\Repository\UserRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
-use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\ORM\EntityManager;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class TenantService
 {
     public function __construct(
-        private readonly ManagerRegistry $doctrine
+        private readonly EntityManager $em,
+        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly UserRepository $userRepository,
     ){
     }
 
     /**
      * @param Tenant $tenant
      * @return void
-     *
      * @throws Exception
      */
-    public function createDatabaseForTenant(Tenant $tenant): void
+    public function switchTenant(Tenant $tenant): void
     {
-        $connectionName = $this->getDoctrine()->getDefaultConnectionName();
-        $connection = $this->getDoctrineConnection($connectionName);
-        $params = $connection->getParams();
-        unset($params['dbname'], $params['path'], $params['url']);
-        $tmpConnection = DriverManager::getConnection($params);
+        /** @var TenantConnection $connection */
+        $connection = $this->getConnection();
+        $connection->changeDatabase($tenant->getDbname());
+    }
 
-        $schemaManager = method_exists($tmpConnection, 'createSchemaManager') ? $tmpConnection->createSchemaManager() : $tmpConnection->getSchemaManager();
+    /**
+     * @return TenantConnection|Connection
+     */
+    public function getConnection(): Connection|TenantConnection
+    {
+        return $this->em->getConnection();
+    }
 
-        $shouldNotCreateDatabase = in_array($tenant->getDbname(), $schemaManager->listDatabases());
-        if ($shouldNotCreateDatabase) {
-            throw new \InvalidArgumentException("Database already exists.");
+    /**
+     * @param string $email
+     * @param string $plaintextPassword
+     * @return void
+     * @throws \Exception
+     */
+    public function createUser(string $email, string $plaintextPassword): void
+    {
+        if ($this->userRepository->findOneBy(['email' => $email])) {
+            throw new \Exception('User already exists');
         }
-
-        $schemaManager->createDatabase($tenant->getDbname());
-    }
-
-    /**
-     * @return ManagerRegistry
-     */
-    private function getDoctrine(): ManagerRegistry
-    {
-        return $this->doctrine;
-    }
-
-    /**
-     * @param string $connectionName
-     *
-     * @return object
-     */
-    private function getDoctrineConnection(string $connectionName): object
-    {
-        return $this->getDoctrine()->getConnection($connectionName);
+        $user = new User();
+        $user->setEmail($email);
+        $hashedPassword = $this->passwordHasher->hashPassword(
+            $user,
+            $plaintextPassword
+        );
+        $user->setPassword($hashedPassword);
+        $this->userRepository->save($user, true);
     }
 }

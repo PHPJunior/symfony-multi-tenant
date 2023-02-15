@@ -127,4 +127,35 @@ class Tenant
     {
         return $this->data['dbname'] ?? '';
     }
+
+    /**
+     * @param string $dbname
+     * @return $this
+     */
+    public function setDbname(string $dbname): Tenant
+    {
+        $this->data['dbname'] = $dbname;
+        return $this;
+    }
+
+    public function isMaintenance(): bool
+    {
+        return $this->data['maintenance'] ?? false;
+    }
+
+    public function setMaintenance(bool $maintenance): Tenant
+    {
+        $this->data['maintenance'] = $maintenance;
+        return $this;
+    }
+
+    /**
+     * @param string $key
+     * @param string|null $default
+     * @return mixed|string
+     */
+    public function getConfig(string $key, string $default = null): mixed
+    {
+        return $this->data[$key] ?? $default;
+    }
 }

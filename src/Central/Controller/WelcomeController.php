@@ -8,11 +8,16 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class WelcomeController extends AbstractController
 {
-    #[Route('/welcome', name: 'Central_welcome')]
+    #[Route('/api/welcome', name: 'welcome')]
     public function index(): JsonResponse
     {
         return $this->json([
             'message' => 'Welcome to Multi Tenant App!',
+            'logged_in_user' => [
+                'id' => $this->getUser()->getId(),
+                'email' => $this->getUser()->getEmail(),
+                'roles' => $this->getUser()->getRoles(),
+            ],
         ]);
     }
 }

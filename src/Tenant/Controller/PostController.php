@@ -14,12 +14,18 @@ class PostController extends AbstractController
     {
     }
 
-    #[Route('/posts', name: 'posts')]
+    #[Route('/api/posts', name: 'posts')]
     public function index(Request $request): JsonResponse
     {
+        $user = $this->getUser();
         return $this->json([
             'data' => $this->postRepository->findAll(),
             'tenant' => $request->attributes->get('tenant'),
+            'logged_in_user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'roles' => $user->getRoles(),
+            ]
         ]);
     }
 }

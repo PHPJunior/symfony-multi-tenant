@@ -2,10 +2,17 @@ central:
     resource:
         path: ../src/Central/Controller/
         namespace: App\Central\Controller
+    name_prefix: central_
     type: attribute
+    host: '%hostname%'
 
 tenant:
     resource:
         path: ../src/Tenant/Controller/
         namespace: App\Tenant\Controller
+    name_prefix: tenant_
     type: attribute
+    host: '{tenant}.%hostname%'
+
+api_login_check:
+    path: /api/login_check
