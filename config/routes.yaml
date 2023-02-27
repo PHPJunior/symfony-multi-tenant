@@ -14,5 +14,13 @@ tenant:
     type: attribute
     host: '{tenant}.%hostname%'
 
+reset_password:
+    resource:
+        path: ../modules/reset-password/src/Controller/
+        namespace: Module\ResetPassword\Controller
+    type: attribute
+    name_prefix: app_
+    prefix: /api
+
 api_login_check:
     path: /api/login_check

@@ -1,0 +1,23 @@
+parameters:
+  tenant_migrations_path: '%kernel.project_dir%/migrations/Tenant'
+  hostname: '%env(HOSTNAME)%'
+
+services:
+  _defaults:
+    autowire: true      # Automatically injects dependencies in your services.
+    autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+  Module\Tenancy\:
+    resource: '../src/'
+    exclude:
+      - '../src/DependencyInjection/'
+      - '../src/Entity/'
+      - '../src/Kernel.php'
+
+  Module\Tenancy\Services\TenantService:
+    arguments:
+      $em: '@doctrine.orm.entity_manager'
+
+  Module\Tenancy\Command\TenantMigrationCommand:
+    arguments:
+      $container: '@service_container'
